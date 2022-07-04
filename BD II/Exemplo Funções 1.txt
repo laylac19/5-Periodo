@@ -1,0 +1,130 @@
+--################	FUNCTIONS	################--
+
+create or replace function total_de_localidades()
+returns bigint as '
+	select count(*) as total from localidade;
+'
+language sql;
+
+select total_de_localidades();
+---------------------------------------------------------------------------
+
+create or replace function exibe_nome_local(integer)
+returns varchar as '
+	select nome_local
+	from localidade
+	where id_local = $1;
+'
+language sql;
+select exibe_nome_local(7);
+---------------------------------------------------------------------------
+
+create or replace function exibe_nome_local (integer)
+returns localidade.nome_local%type as '
+	select nome_local 
+	from localidade
+	where id_local = $1;
+'
+language sql;
+select exibe_nome_local(3);
+---------------------------------------------------------------------------
+
+create or replace function exibe_localidade(integer) 
+returns record as '
+	select * from localidade where id_local = $1;
+'
+language sql;
+select exibe_localidade(9);
+
+drop function exibe_localidade;
+---------------------------------------------------------------------------
+
+create or replace function exibe_localidade(integer) 
+returns localidade as '
+	select * from localidade where id_local = $1;
+'
+language sql;
+select exibe_localidade(8);
+
+drop function exibe_localidade;
+---------------------------------------------------------------------------
+
+create or replace function exibe_localidade(integer, integer) 
+returns setof localidade as '
+	select * from localidade where id_local between $1 and $2;
+'
+language sql;
+select exibe_localidade(4, 8);
+drop function exibe_localidade;
+---------------------------------------------------------------------------
+
+create or replace function exibe_localidade(integer, integer) 
+returns setof  record as '
+	select * from localidade where id_local between $1 and $2;
+'
+language sql;
+select exibe_localidade(2, 4);
+---------------------------------------------------------------------------
+
+create or replace function exibe_linha(integer)
+returns setof record as '
+	select id_linha, nome_linha, l.id_classe, nome_classe
+	from linha l, classe c
+	where l.id_classe = c.id_classe
+	and id_linha = $1;
+'
+language sql;
+select exibe_linha(2);
+drop function exibe_linha;
+---------------------------------------------------------------------------
+
+create or replace function exibe_linha(integer)
+returns setof linha as $$
+	select * from linha 
+	where id_linha = $1;
+$$
+language sql;
+
+select exibe_linha(2);
+
+drop function exibe_linha;
+---------------------------------------------------------------------------
+
+create or replace function insere_localidade(integer, varchar) 
+returns localidade as $$
+	insert into localidade values($1, $2);
+	
+	select * from localidade order by id_local desc;
+$$
+language sql;
+
+select insere_localidade(100, 'cidade jardim');
+
+drop function insere_localidade;
+---------------------------------------------------------------------------
+
+create or replace function insere_localidade(integer, varchar)
+returns setof localidade as $$
+	insert into localidade values($1, $2);
+	
+	select * from localidade order by id_local desc;
+$$
+language sql;
+
+select insere_localidade(101, 'vila paris');
+drop function insere_localidade;
+---------------------------------------------------------------------------
+
+create or replace function excluir_localidade(integer) 
+returns setof record as $$
+	delete from localidade where id_local = $1;
+	
+	select 'exluída localidade com id_local = ', $1;
+$$
+language sql;
+
+select excluir_localidade(102);
+---------------------------------------------------------------------------
+select * from localidade where id_local >= 100;
+---------------------------------------------------------------------------
+

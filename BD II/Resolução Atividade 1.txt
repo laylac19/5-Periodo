@@ -1,0 +1,206 @@
+--################	DROP	################--
+drop table localidade;
+drop table classe;
+drop table linha;
+drop table trecho;
+drop table tarifa;
+drop table viagem;
+drop table passagem;
+
+--################	CREATE	################--
+create table localidade (
+   idLocal serial not null primary key,
+   nomelocal varchar(40) not null
+);
+
+create index indice_nome_local 
+on localidade 
+using btree (nome_local);
+
+create table classe (
+   idClasse serial not null primary key,
+   nomeClasse varchar(20) not null
+);
+
+create table linha (
+   idLinha serial not null primary key,
+   idLocalOrigem integer not null,
+   idLocalDestino integer not null,
+   idClasse integer not null references classe (idClasse) on delete restrict,
+   nomeLinha varchar(200) not null,
+   foreign key (idLocalOrigem) references localidade (idLocal) on delete restrict,
+   foreign key (idLocalDestino) references localidade (idLocal)on delete restrict
+);
+
+create table trecho (
+	idTrecho serial not null,
+	idLinha integer not null references linha (idLinha)	on delete restrict,
+	idLocal integer not null references localidade (idLocal) on delete restrict,
+	km numeric(6,2) not null,
+	primary key(idTrecho, idLinha)
+);
+
+create table tarifa (
+   idTarifa serial not null primary key,
+   idClasse integer not null references classe (idClasse) on delete restrict,
+   dtInicio date not null,
+   dtFim date,
+   valor numeric(9,2) not null
+);
+
+create table viagem (
+   idViagem serial not null,
+   idLinha integer not null references linha (idLinha) on delete restrict,
+   dtHora timestamp not null,
+   totalLugares integer not null,
+   primary key(idViagem)
+);
+
+create table passagem (
+   idPassagem serial not null primary key,
+   idViagem integer not null references viagem (idViagem) on delete restrict,
+   idLocalEmbarque integer not null references localidade (idLocal) on delete restrict,
+   idLocalDesembarque integer not null references localidade (idLocal) on delete restrict,
+   dtHoraCompra timestamp,
+   preco decimal(9,2),
+   poltrona integer,
+   idTarifa integer references tarifa (idTarifa) on delete restrict
+);
+
+--################	INSERT	################--
+insert into localidade (nomelocal)
+values ('Vitória'),('Guarapari'),('Vila Velha'),
+('Viana'),('Cariacica'),('Serra'),('Domingos Martins'),
+('Fundão'),('Ibiraçu'),('João Neiva'),('Aracruz'),
+('Colatina'),('Linhares'),('Baixo Guandu'),('Marilândia'),
+('Baunilha'),('Pendanga'),('Acioli'),('Barra do Triunfo'),
+('Santa Teresa'),('São Roque do Canaã'),('Nova Almeida');
+
+insert into classe (nomeClasse) values ('Comercial'), ('Semi direto'), ('Executivo'), ('Leito');
+
+insert into linha values (1,1,8,2,'Vitória x Fundão');
+insert into linha values (2,1,7,3, 'Vitória x Domingos Martins');
+
+insert into trecho values (1,1,4,40);
+insert into trecho values (2,2,2,50);
+
+-- insert TARIFA, VIAGEM e PASSAGEM
+
+--################	FUNCTIONS	################--
+
+create or replace function total_de_localidades()
+returns bigint as '
+	select count(*) as total from localidade;
+'
+language sql;
+
+select total_de_localidades();
+---------------------------------------------------------------------------
+
+create or replace function exibe_nome_local (integer)
+returns localidade.nomeLocal%type as '
+	select nomeLocal 
+	from localidade
+	where idLocal = $1;
+'
+language sql;
+select exibe_nome_local(3);
+---------------------------------------------------------------------------
+
+create or replace function exibe_localidade(integer, integer) 
+returns setof  record as '
+	select * from localidade where idLocal between $1 and $2;
+'
+language sql;
+select exibe_localidade(2, 4);
+---------------------------------------------------------------------------
+
+create or replace function exibe_linha(integer)
+returns setof linha as $$
+	select * from linha 
+	where idLinha = $1;
+$$
+language sql;
+select exibe_linha(2);
+
+drop function exibe_linha;
+---------------------------------------------------------------------------
+
+create or replace function insere_localidade(integer, varchar)
+returns setof localidade as $$
+	insert into localidade values($1, $2);
+	
+	select * from localidade order by idLocal desc;
+$$
+language sql;
+
+select insere_localidade(101, 'Vila Paris');
+drop function insere_localidade;
+---------------------------------------------------------------------------
+
+create or replace function excluir_localidade(integer) 
+returns setof record as $$
+	delete from localidade where idlocal = $1;
+	
+	select 'Exluída localidade com id_local = ', $1;
+$$
+language sql;
+select * from localidade
+select excluir_localidade(101);
+---------------------------------------------------------------------------
+select * from localidade where id_local >= 100;
+---------------------------------------------------------------------------
+
+
+
+--###############  ATIVIDADE  ###############--
+ 
+/* 1 função == exibe_trechos(int linha) retorna *id_thecho, *id_local, *nome_local, *km e *id_linha */
+create or replace function exibe_trechos(integer)
+returns setof record as $$
+	select idTrecho, t.idLocal, nomeLocal, km, idLinha
+	from trecho t, localidade l
+	where idLinha = $1 
+	and t.idLinha = l.idLocal
+$$
+language sql;
+select exibe_trechos(1);
+
+drop function  exibe_trechos;
+
+/* 2 função == exibe_poltronas_disponiveis(int id_viagem) retorna poltranas que ainda não foram vendidas */
+create or replace function exibe_poltronas_disponiveis(integer)
+returns setof record as '
+	select poltrona from passagem where idviagem = $1
+	and preco is null;
+'
+language sql;
+
+select * from exibe_poltronas_disponiveis(1) as (poltrona integer);
+ 
+/* 3 função == cria_viagem(int id_linha, int total_lugares, datahora) gerar um novo registro de viagem; 
+define datahora, cria idviagem retorna idviagem criado */
+
+create or replace function criar_viagem(integer, timestamp, integer)
+returns setof record as $$
+	insert into viagem (idLinha, dtHora, totalLugares)
+	values($1, current_timestamp, $2);
+	
+	select 'id viagem criado = ', idViagem
+	from viagem
+	where idLinha = $1 and totalLugares = $2;
+$$
+language sql;
+select criar_viagem(1, 20);
+
+/*  4 função == lista_viagens_de_linha(int id_linha) exibe id_viagem, id_linha, id_local_origem, nome_local(de origem), 
+idlocaldestino, nomelocal(destino) e datahora de viagens qu ocorregraõ de hoje(data atual) adidante */
+	
+create or replace function listar_viagens_de_linha(integer) 
+returns setof record as $$
+	select
+	from 
+	where
+$$
+language sql;
+select listar_viagens_de_linha();

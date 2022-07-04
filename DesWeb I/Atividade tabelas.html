@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabelas</title>
+</head>
+
+<body>
+    <table border="1" width="30%">
+        <!--td*2>td*2-->
+        <tr>
+            <td>L1 - C1</td>
+            <td>L1 - C2</td>
+            <td>L1 - C3</td>
+        </tr>
+        <tr>
+            <td>L2 - C1</td>
+            <td>L2 - C2</td>
+            <td>L2 - C3</td>
+        </tr>
+
+        <tr>
+            <td>L3 - C1</td>
+            <td>L3 - C2</td>
+            <td>L3 - C3</td>
+        </tr>
+    </table>
+
+<br><br>
+
+    <table  border="1" width="30%">
+        <tr>
+            <td colspan="2" align="center">L1 - C1-2</td>
+            <td>L1 - C3</td>
+        </tr>
+        <tr>
+            <td>L2 - C1</td>
+            <td>L2 - C2</td>
+            <td>L2 - C3</td>
+        </tr>
+        <tr>
+            <td>L3 - C1</td>
+            <td colspan="2" align="center">L3 - C2-3</td>
+        </tr>
+    </table>
+</body>
+
+<br><br>
+<table  border="1">
+    <tr>
+        <td rowspan="2">L1-2 - C1</td>
+        <td>L1 - C2</td>
+        <td rowspan="3">L1-2-3 - C3</td>
+    </tr>
+    <tr>
+        <td>L2 - C2</td>
+    </tr>
+    <tr>
+        <td>L3 - C1</td>
+        <td>L3 - C2</td>
+    </tr>
+</table>
+
+<br><br>
+<br><br>
+
+
+<table border="1" width="50%">
+ <tr> <!--linha 1-->
+     <td>L1 - C1</td>
+     <td>L1 - C2</td>
+     <td colspan="3">L1 - C345</td>
+ </tr>
+
+ <tr><!--linha 2-->
+     <td>L2 - C1</td>
+     <td>L2 - C2</td>
+     <td colspan="2">L2 - C34</td>
+     <td>L2 - C5</td>
+ </tr>
+
+ <tr><!--linha 3-->
+     <td>L3-C1</td>
+     <td colspan="2">L3-C23</td>
+     <td>L3-C4</td>
+     <td rowspan="2">L3-C5</td>
+ </tr>
+
+ <tr><!--linha 4-->
+    <td>L4-C1</td>
+     <td rowspan="3">L456-C2</td>
+     <td>L4-C3</td>
+     <td>L4-C4</td>
+ </tr>
+
+ <tr><!--linha 5-->
+     <td>L5-C1</td>
+     <td>L5-C3</td>
+     <td colspan="2">L5-C45</td>
+ </tr>
+
+ <tr><!--linha 6-->
+    <td>L6-C1</td>
+    <td>L6-C3</td>
+    <td>L6-C4</td>
+    <td>L6-C5</td>
+ </tr>
+</table>
+</html>

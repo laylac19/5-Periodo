@@ -1,0 +1,12 @@
+1 - Tutorial HTML
+	 https://www.w3schools.com/html/default.asp
+
+2 - Referência CSS
+	https://www.w3schools.com/cssref/
+
+3 - Ferramentas e Linguagens de Desenvolvimento: Visão Geral
+	 	https://slides.com/davidpaolinidevelly/deck-4d4874
+
+4 - Flexbox FroggyURL
+	https://codepip.com/games/
+

@@ -1,0 +1,39 @@
+create or replace function inserir_pedido_particular_hoje()
+returns trigger as $$
+begin
+	insert into pedido(matricula, id_plano, dt_pedido)
+	values(new.matricula, 0, current_date);
+	return NEW;
+end;
+$$ language plpgsql;
+
+create or replace trigger cadastrar_pedido
+after insert on paciente
+for each row
+execute procedure inserir_pedido_particular_hoje();
+
+INSERT INTO PACIENTE VALUES (240,'CINTHIA RIBEIRO CRUZ','F','1971-05-17');
+
+create or replace function deletar_pedido()
+returns trigger as $$
+begin
+	delete from pedido
+	where nr_pedido = old.nr_pedido;
+	return NEW;
+end;
+$$ language plpgsql;
+
+create or replace trigger deletar_exame_pedido
+after delete on exame_pedido
+for each row
+execute procedure deletar_pedido();
+
+delete from exame_pedido where nr_pedido = 100;
+
+select * from paciente;
+
+CREATE OR REPLACE RULE REGRA_PACIENTE_001 AS ON INSERT TO PACIENTE
+WHERE NEW.SEXO NOT IN ('M','F','I')
+DO INSTEAD NOTHING;
+
+INSERT INTO PACIENTE VALUES (242,'CINTHIA RIBEIRO','I','1971-05-17');

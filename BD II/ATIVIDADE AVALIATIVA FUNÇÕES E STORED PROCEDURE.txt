@@ -1,0 +1,102 @@
+-- ATIVIDADE AVALIATIVA -----------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------------
+--[1] Escreva uma FUNÇÃO SQL de assinatura OBTER_DADOS_PACIENTE(VARCHAR) em que o usuário passa como parâmetro um trecho do nome de um 
+--    PACIENTE e, em resposta, recebe a MATRICULA, NOME (completo), NASCIMENTO, idade e SEXO. Os dados deverão ser exibidos por ordem
+--    alfabética ascendente de nome.
+--    Essa função tem por objetivo verificar se um dado paciente possui cadastro no LABORATÓRIO. É bem provável que o PACIENTE não lembre
+--    de sua MATRICULA e nem esteja de posse da carterinha.
+------------------------------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION OBTER_DADOS_PACIENTE(VARCHAR)
+RETURNS SETOF RECORD AS $$
+   SELECT MATRICULA, NOME, NASCIMENTO, EXTRACT(YEAR FROM AGE(CURRENT_DATE, NASCIMENTO)), SEXO
+   FROM PACIENTE
+   WHERE NOME ILIKE '%' || $1 || '%'
+   ORDER BY NOME ASC
+$$
+LANGUAGE SQL;
+
+SELECT OBTER_DADOS_PACIENTE('joS');
+------------------------------------------------------------------------------------------------------------------------------------------
+--[2] Elabore uma FUNÇÃO PLPGSQL de assinatura CRIAR_PEDIDO(matriculaPaciente, idPlano, nrRegistroPlano) em que o usuário passa como parâmetros 
+--    a MATRICULA, o ID_PLANO do PACIENTE e o número do registro no plano. Esta função deverá inserir um novo registro de PEDIDO, com o 
+--    NR_PEDIDO e DT_PEDIDO sendo gerados automaticamente. DT_PEDIDO deve receber a data corrente do sistema no momento em que a função 
+--    foi invocada. Ao final de sua execução uma consulta SQL deve ser disparada para exibir o NR_PEDIDO, ID_PLANO, NOME_PLANO, MATRICULA,
+--    NOME (do paciente) e DT_PEDIDO.
+--
+--    Consistências que devem ser efetuadas antes da inserção do registro de PEDIDO:
+--       (A) a MATRICULA deve existir na tabela PACIENTE.
+--       (B) o ID_PLANO deve existir na tabela PLANO.
+--       (C) o NR_REGISTRO_PLANO deve ser NULL quando o ID_PLANO for 0 ("PARTICULAR").
+------------------------------------------------------------------------------------------------------------------------------------------
+drop function criar_pedido
+CREATE OR REPLACE FUNCTION CRIAR_PEDIDO(INTEGER, INTEGER, VARCHAR) 
+RETURNS SETOF RECORD AS $$
+DECLARE 
+	TOTAL_MATRICULA INTEGER;
+	TOTAL_PLANO INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO TOTAL_MATRICULA FROM PACIENTE WHERE MATRICULA = $1;
+	SELECT COUNT(*) INTO TOTAL_PLANO FROM PLANO WHERE ID_PLANO = $2;
+	
+	IF TOTAL_MATRICULA > 0
+		THEN IF TOTAL_PLANO > 0
+			THEN IF $2 = 0
+				THEN 
+					INSERT INTO PEDIDO (MATRICULA, ID_PLANO, NR_REGISTRO_PLANO, DT_PEDIDO) 
+					VALUES ($1, $2, NULL, CURRENT_DATE);
+			ELSE
+				INSERT INTO PEDIDO (MATRICULA, ID_PLANO, NR_REGISTRO_PLANO, DT_PEDIDO) 
+					VALUES ($1, $2, $3, CURRENT_DATE);
+			END IF;
+		END IF;
+	END IF;
+	RETURN QUERY 
+		SELECT P.NR_PEDIDO AS NR_PEDIDO, PL.ID_PLANO AS ID_PLANO, PL.NOME AS NOME_PLANO,
+		PA.MATRICULA AS MATRICULA, PA.NOME AS NOME_PACIENTE, P.DT_PEDIDO AS DT_PEDIDO 
+		FROM PEDIDO P, PACIENTE PA, PLANO PL
+		WHERE PA.MATRICULA = $1 
+		AND PL.ID_PLANO = $2 
+		AND P.NR_REGISTRO_PLANO = $3; 
+	RETURN;
+END;
+$$ LANGUAGE PLPGSQL;
+
+SELECT * FROM CRIAR_PEDIDO(235, 0, '1.009.919.810') 
+AS (NR_PEDIDO INTEGER, ID_PLANO INTEGER, NOME_PLANO VARCHAR(40), MATRICULA INTEGER, NOME_PACIENTE VARCHAR(40), DT_PEDIDO DATE);
+------------------------------------------------------------------------------------------------------------------------------------------
+--[3] Faça um STORED PROCEDURE de assinatura CRIAR_EXAME_PEDIDO(NR_PEDIDO, ID_EXAME) em que o usuário informa NR_PEDIDO e ID_EXAME para inserir
+--    um novo registro de EXAME_PEDIDO. As datas DT_COLETA, DT_PROCESSAMENTO e DT_FINALIZADO deverão ser inicialmente todas NULL. O VALOR, para
+--    ser gerado, exigirá uma leitura da Tabela EXAME_AUTORIZADO (com ID_PLANO de PEDIDO e ID_EXAME do parâmetro). Se houver registro de 
+--    EXAME_AUTORIZADO deve-se recuperar o VALOR_CH do exame em questão. Então, por meio de ID_PLANO em PEDIDO, deve-se buscar em VALOR mais 
+--    atualizado na Tabela US (com DT_FINAL_VIGENCIA = NULL). O VALOR (preço) de EXAME_PEDIDO deverá ser o resultado da multiplicação de VALOR
+--    (em US) pelo VALOR_CH (em EXAME_AUTORIZADO).
+--
+--    Consistências que devem ser efetuadas antes da inserção do registro de EXAME_PEDIDO:
+--       (A) NR_PEDIDO deve existir na tabela PEDIDO.
+--       (B) ID_EXAME deve existir na tabela EXAME.
+--       (C) ID_EXAME deve existir na tabela EXAME_AUTORIZADO (o Plano de Saúde deve permiti-lo aos seus conveniados).
+-----------------------------------------------------------------------------------------------------------------------------------------
+--
+CREATE OR REPLACE PROCEDURE CRIAR_EXAME_PEDIDO(IN nrPedido INTEGER, IN idExame INTEGER)
+    LANGUAGE PLPGSQL
+AS
+$$
+DECLARE
+    varValor      NUMERIC(9, 2);
+    varPedido     PEDIDO;
+    varUS         US;
+    varAutorizado EXAME_AUTORIZADO;
+BEGIN
+    SELECT * INTO varPedido FROM PEDIDO p WHERE p.nr_pedido = nrPedido;
+    SELECT * INTO varUS FROM US u WHERE u.id_plano = varPedido.id_plano AND u.dt_final_vigencia IS NULL;
+    SELECT * INTO varAutorizado FROM EXAME_AUTORIZADO a WHERE a.id_exame = idExame AND a.id_plano = varPedido.id_plano;
+
+    IF (varPedido.id_plano IS NOT NULL AND varAutorizado.valor_ch IS NOT NULL)
+    THEN
+        varValor := varUS.valor * varAutorizado.valor_ch;
+        INSERT INTO EXAME_PEDIDO (NR_PEDIDO, ID_EXAME, VALOR) VALUES (nrPedido, idExame, varValor);
+    END IF;
+END;
+$$;
+
+CALL CRIAR_EXAME_PEDIDO(101, 1005);
